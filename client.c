@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+int	g_pid;
 int	ft_atoi(const char *str)
 {
 	int	i;
@@ -50,12 +51,26 @@ void	ft_ch(char ch, int pid)
 	i = 8;
 	while (i--)
 	{
+		g_pid = 0;
 		if ((ch >> i) & 1)
-			kill(pid, SIGUSR1);
+		{
+			if (kill(pid, SIGUSR1) == -1)
+				exit(1);
+		}
 		else
-			kill(pid, SIGUSR2);
-		usleep(400);
+		{
+			if (kill(pid, SIGUSR2) == -1)
+				exit(1);
+		}
+		while (g_pid == 0)
+			usleep(200);
 	}
+}
+
+void	ft_hand(int sig)
+{
+	if (sig == SIGUSR1)
+		g_pid = 1;
 }
 
 void	ft_str(char *str, int pid)
@@ -74,12 +89,16 @@ void	ft_str(char *str, int pid)
 int	main(int argc, char **argv)
 {
 	int	pid;
-	int	i;
 
 	if (argc == 3)
 	{
-		i = 0;
 		pid = ft_atoi(argv[1]);
+		if (pid < 0)
+		{
+			write(1, "Invalid PID\n", 12);
+			return (1);
+		}
+		signal(SIGUSR1, ft_hand);
 		ft_str(argv[2], pid);
 	}
 	else

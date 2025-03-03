@@ -19,12 +19,10 @@ void	ft_putnbr(int n)
 	char	c;
 
 	if (n == -2147483648)
-	{
-		write(2, "-2147483648", 11);
-	}
+		write(1, "-2147483648", 11);
 	else if (n < 0)
 	{
-		write(2, "-", 1);
+		write(1, "-", 1);
 		ft_putnbr(-n);
 	}
 	else if (n > 9)
@@ -35,48 +33,49 @@ void	ft_putnbr(int n)
 	else
 	{
 		c = n + '0';
-		write(2, &c, 1);
+		write(1, &c, 1);
 	}
 }
 
 void	ft_hand(int sig, siginfo_t *info, void *ca)
 {
-	static int	i;
-	static char	c;
-	static int	pid;
+	static int	i = 0;
+	static char	c = 0;
 
 	(void)ca;
-	if (pid != info->si_pid)
-	{
-		i = 0;
-		c = 0;
-		pid = info->si_pid;
-	}
 	if (sig == SIGUSR1)
 		c |= (1 << (7 - i));
 	i++;
 	if (i == 8)
 	{
-		if (c != '\0')
-			(write(1, &c, 1), i = 0, c = 0);
+		usleep(100);
+		if (c)
+			write(1, &c, 1);
 		else
 			(write(1, "\n", 1), kill(info->si_pid, SIGUSR2));
+		i = 0;
+		c = 0;
 	}
 	kill(info->si_pid, SIGUSR1);
 }
 
 int	main(void)
 {
-	int					pid;
+	int			pid;
 	struct sigaction	sig;
 
 	pid = getpid();
 	ft_putnbr(pid);
+	write(1, "\n", 1);
 	sig.sa_sigaction = ft_hand;
 	sig.sa_flags = SA_SIGINFO;
 	sigemptyset(&sig.sa_mask);
-	sigaction(SIGUSR1, &sig, 0);
-	sigaction(SIGUSR2, &sig, 0);
+	if (sigaction(SIGUSR1, &sig, 0) == -1 || sigaction(SIGUSR2, &sig, 0) == -1)
+	{
+		write(1, "Error: sigaction failed\n", 24);
+		exit(1);
+	}
 	while (1)
 		pause();
+	return (0);
 }
